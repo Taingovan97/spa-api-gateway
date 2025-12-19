@@ -33,11 +33,11 @@ public class UserContextGlobalFilter implements GlobalFilter, Ordered {
                     Map<String, Object> realmAccess = jwt.getClaimAsMap("realm_access");
                     @SuppressWarnings("unchecked")
                     List<String> roles = realmAccess == null ? List.of() : (List<String>) realmAccess.getOrDefault("roles", List.of());
-                    ServerHttpRequest req = exchange.getRequest().mutate()
-//                            .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt.getTokenValue())
-                            .header("X-User_Id", sub)
-                            .header("X-User-Email", email)
-                            .header("X-User-Roles", String.join(",", roles))
+                    ServerHttpRequest req = exchange.getRequest().mutate().headers(h -> {
+                                h.add("X-User-Id", sub);
+                                h.add("X-User-Email", email == null ? "" : email);
+                                h.add("X-User-Roles", String.join(",", roles));
+                            })
                             .build();
                     return exchange.mutate().request(req).build();
                 })

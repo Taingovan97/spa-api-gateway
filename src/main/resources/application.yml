@@ -12,7 +12,7 @@ spring:
     gateway:
       routes:
         - id: user-service
-          uri: http://spa-user-service:8082
+          uri: http://localhost:8082
           predicates:
             - Path=/me/**
 
