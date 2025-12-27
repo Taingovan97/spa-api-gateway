@@ -6,7 +6,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://localhost:18081/realms/spa-booking
+          jwk-set-uri: ${KEYCLOAK_JWKS_URI}
 
   cloud:
     gateway:
@@ -14,13 +14,13 @@ spring:
         - id: user-service
           uri: http://localhost:8082
           predicates:
-            - Path=/api/v1/user/**
+            - Path=/user/**
 
         # Public read examples (sau này)
         - id: catalog-public
           uri: http://spa-catalog-service:8083
           predicates:
-            - Path=/api/v1/catalog/**
+            - Path=/catalog/**
 
 management:
   endpoint:
@@ -30,4 +30,4 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics,prometheus

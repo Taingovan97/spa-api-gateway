@@ -1,16 +1,51 @@
 package com.spa.booking.gateway.config;
 
 import com.spa.booking.gateway.utils.KeycloakRoleConverter;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtIssuerValidator;
+import org.springframework.security.oauth2.jwt.JwtTimestampValidator;
+import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder;
+import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.ReactiveJwtAuthenticationConverterAdapter;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 
 @Configuration
 @EnableWebFluxSecurity
 public class SecurityConfig {
+    // Token iss thực tế của bạn
+    private static final String EXPECTED_ISSUER = "http://localhost:18081/realms/spa-booking";
+
+    /**
+     * Build a decoder from JWKS URI (reachable inside K8s),
+     * then validate issuer claim == EXPECTED_ISSUER.
+     */
+    @Bean
+    public ReactiveJwtDecoder jwtDecoder(
+            @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri:}") String jwkSetUri) {
+        if (jwkSetUri.isBlank()) {
+            throw new IllegalStateException("""
+            Missing property:
+            spring.security.oauth2.resourceserver.jwt.jwk-set-uri
+            """);
+        }
+
+        NimbusReactiveJwtDecoder decoder = NimbusReactiveJwtDecoder.withJwkSetUri(jwkSetUri).build();
+
+        OAuth2TokenValidator<Jwt> issuerValidator = new JwtIssuerValidator(EXPECTED_ISSUER);
+        OAuth2TokenValidator<Jwt> timestampValidator = new JwtTimestampValidator();
+
+        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(timestampValidator, issuerValidator));
+        return decoder;
+    }
+
     @Bean
     public SecurityWebFilterChain security(ServerHttpSecurity http) {
         return http
@@ -22,12 +57,12 @@ public class SecurityConfig {
                         // protected by role
                         .pathMatchers("/admin/**").hasRole("ADMIN")
                         .pathMatchers("/staff/**").hasAnyRole("STAFF", "ADMIN")
-                        .pathMatchers("/user/**").hasAnyRole("CUSTOMER",  "STAFF", "ADMIN")
+                        .pathMatchers("/user/**").hasAnyRole("CUSTOMER", "STAFF", "ADMIN")
 
                         // everything else requires login
-                        .anyExchange().authenticated()
-                )
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(new ReactiveJwtAuthenticationConverterAdapter(new KeycloakRoleConverter()))))
+                        .anyExchange().authenticated())
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(
+                        new ReactiveJwtAuthenticationConverterAdapter(new KeycloakRoleConverter()))))
                 .build();
     }
 }
