@@ -3,8 +3,8 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          # kind chạy trong Docker: gateway pod truy cập Keycloak host qua host.docker.internal (Windows/Mac)
-          jwk-set-uri: ${KEYCLOAK_JWKS_URI:http://host.docker.internal:18081/realms/spa-booking/protocol/openid-connect/certs}
+          # Cloud: thường Keycloak chạy trong cluster hoặc có domain public/private ổn định
+          jwk-set-uri: ${KEYCLOAK_JWKS_URI}
 
   cloud:
     gateway:

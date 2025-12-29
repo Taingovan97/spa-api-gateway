@@ -3,6 +3,7 @@ package com.spa.booking.gateway.config;
 import com.spa.booking.gateway.utils.KeycloakRoleConverter;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
@@ -16,9 +17,11 @@ import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.ReactiveJwtAuthenticationConverterAdapter;
 import org.springframework.security.web.server.SecurityWebFilterChain;
+import org.springframework.util.StringUtils;
 
 @Configuration
 @EnableWebFluxSecurity
+@EnableConfigurationProperties(JwtResourceServerProperties.class)
 public class SecurityConfig {
     // Token iss thực tế của bạn
     private static final String EXPECTED_ISSUER = "http://localhost:18081/realms/spa-booking";
@@ -28,13 +31,16 @@ public class SecurityConfig {
      * then validate issuer claim == EXPECTED_ISSUER.
      */
     @Bean
-    public ReactiveJwtDecoder jwtDecoder(
-            @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri:}") String jwkSetUri) {
-        if (jwkSetUri.isBlank()) {
+    public ReactiveJwtDecoder jwtDecoder(JwtResourceServerProperties props) {
+        String jwkSetUri = props.getJwkSetUri();
+        if (!StringUtils.hasText(jwkSetUri)) {
             throw new IllegalStateException("""
-            Missing property:
-            spring.security.oauth2.resourceserver.jwt.jwk-set-uri
-            """);
+                Missing required property:
+                spring.security.oauth2.resourceserver.jwt.jwk-set-uri
+
+                Example (Windows + kind):
+                spring.security.oauth2.resourceserver.jwt.jwk-set-uri=http://host.docker.internal:18081/realms/spa-booking/protocol/openid-connect/certs
+                """);
         }
 
         NimbusReactiveJwtDecoder decoder = NimbusReactiveJwtDecoder.withJwkSetUri(jwkSetUri).build();
