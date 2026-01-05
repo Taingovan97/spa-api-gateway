@@ -1,8 +1,5 @@
 package com.spa.booking.gateway.config;
 
-import com.spa.booking.gateway.utils.KeycloakRoleConverter;
-
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,6 +15,8 @@ import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.ReactiveJwtAuthenticationConverterAdapter;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.util.StringUtils;
+
+import com.spa.booking.gateway.utils.KeycloakRoleConverter;
 
 @Configuration
 @EnableWebFluxSecurity
@@ -58,7 +57,10 @@ public class SecurityConfig {
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .authorizeExchange(ex -> ex
                         // public
-                        .pathMatchers("/actuator/health", "/services/**").permitAll()
+                        .pathMatchers(
+                            "/actuator/health",
+                            "/actuator/health/**",
+                            "/services/**").permitAll()
 
                         // protected by role
                         .pathMatchers("/admin/**").hasRole("ADMIN")
